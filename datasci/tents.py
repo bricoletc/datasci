@@ -10,13 +10,16 @@ class UnsupportedFieldsException(Exception):
     pass
 
 
-class TabEnt:
+class Tent:
     _UNSET = "NA"
 
-    def __init__(self, h: list, r_h: list):
+    def __init__(self, h: list, r_h: list, immutable: bool, unset = None):
         self._headers = h
         self._headers_set = set(h)
         self._required_headers = r_h
+        self._immutable = immutable
+        if unset is not None:
+            self._UNSET = unset
         for key in self._headers:
             setattr(self, key, self._UNSET)
 
@@ -27,7 +30,7 @@ class TabEnt:
         if not key.startswith("_"):
             self._check_fields_are_supported({key})
             existing_val = getattr(self, key, None) 
-            if existing_val is not None and existing_val != self._UNSET:
+            if existing_val is not None and existing_val != self._UNSET and self._immutable:
                 raise ValueError(f"{key} is already set")
         super().__setattr__(key, value)
 
@@ -68,21 +71,23 @@ class Tents:
     [TODO] Usage
     """
 
-    def __init__(self, headers: list, required_headers: list = []):
+    def __init__(self, headers: list, required_headers: list = [], immutable: bool = False, unset_value = None):
         self._headers = headers
         self._required_headers = required_headers
         self._entries = list()
+        self._immutable = immutable
+        self._unset = unset_value
 
-    def __repr__(self):
+    def __repr__(self, with_header: bool = True):
         return self.get_header() + "\n".join(map(lambda l: "\t".join(map(str,l)), self._entries))
 
-    def add(self, entry: TabEnt):
+    def add(self, entry: Tent):
         repr(entry)
         assert entry._headers == self._headers
         self._entries.append(entry[key] for key in self._headers)
 
-    def new(self) -> TabEnt:
-        return TabEnt(self._headers, self._required_headers)
+    def new(self) -> Tent:
+        return Tent(self._headers, self._required_headers, self._immutable, self._unset)
 
     def get_header(self):
         return "\t".join(self._headers) + "\n"
