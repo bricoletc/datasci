@@ -1,4 +1,5 @@
 from typing import Optional
+from pathlib import Path
 from itertools import starmap, repeat
 
 
@@ -71,6 +72,23 @@ class Tents:
     [TODO] Usage
     """
 
+    @classmethod
+    def from_tsv(self, fname: str) -> "Tents":
+        with Path(fname).open("r") as fin:
+            while True:
+                headers = next(fin).strip()
+                if not headers.startswith("#"):
+                    headers = headers.split("\t")
+                    break
+            result = Tents(headers=headers)
+            for line in fin:
+                elements = line.strip().split("\t")
+                new_tent = result.new()
+                new_tent.update(**dict(zip(headers, elements)))
+                result.add(new_tent)
+        return result
+
+
     def __init__(self, headers: list, required_headers: list = [], immutable: bool = False, unset_value = None):
         self._headers = headers
         self._required_headers = required_headers
@@ -79,15 +97,19 @@ class Tents:
         self._unset = unset_value
 
     def __repr__(self, with_header: bool = True):
-        return self.get_header() + "\n".join(map(lambda l: "\t".join(map(str,l)), self._entries))
+        return self.get_header() + "\n".join(map(repr, self._entries))
+
+    def __iter__(self):
+        return iter(self._entries)
 
     def add(self, entry: Tent):
         repr(entry)
         assert entry._headers == self._headers
-        self._entries.append(entry[key] for key in self._headers)
+        self._entries.append(entry)
 
     def new(self) -> Tent:
         return Tent(self._headers, self._required_headers, self._immutable, self._unset)
 
     def get_header(self):
         return "\t".join(self._headers) + "\n"
+
