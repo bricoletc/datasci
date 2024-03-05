@@ -1,1 +1,1 @@
-from .tents import Tents
+from .tents import Tent, Tents

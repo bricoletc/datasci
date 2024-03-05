@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from pathlib import Path
 from itertools import starmap, repeat
 
@@ -18,6 +18,8 @@ class Tent:
         self._headers = h
         self._headers_set = set(h)
         self._required_headers = r_h
+        self._required_headers_set = set(r_h)
+        self._set_headers = set()
         self._immutable = immutable
         if unset is not None:
             self._UNSET = unset
@@ -30,16 +32,16 @@ class Tent:
     def __setattr__(self, key, value):
         if not key.startswith("_"):
             self._check_fields_are_supported({key})
-            existing_val = getattr(self, key, None) 
-            if existing_val is not None and existing_val != self._UNSET and self._immutable:
+            if key in self._set_headers and self._immutable:
                 raise ValueError(f"{key} is already set")
+            self._set_headers.add(key)
         super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
     def __repr__(self):
-        missing_fields = self._get_missing_fields()
+        missing_fields = self._required_headers_set.difference(self._set_headers)
         if len(missing_fields) > 0:
             raise UnsetFieldsException(
                 f"Missing unset fields: {missing_fields}. Entry can only be serialised with all of the following fields set: {self._required_headers}"
@@ -52,13 +54,6 @@ class Tent:
             raise UnsupportedFieldsException(
                 f"Supported fields: {self._headers}"
             )
-
-    def _get_missing_fields(self):
-        result = set()
-        for required_field in self._required_headers:
-            if getattr(self, required_field) == self._UNSET:
-                result.add(required_field)
-        return result
 
     def update(self, **fields):
         self._check_fields_are_supported(fields.keys())
@@ -73,13 +68,14 @@ class Tents:
     """
 
     @classmethod
-    def from_tsv(self, fname: str) -> "Tents":
+    def from_tsv(self, fname: str, headers: List[str] = None) -> "Tents":
         with Path(fname).open("r") as fin:
-            while True:
-                headers = next(fin).strip()
-                if not headers.startswith("#"):
-                    headers = headers.split("\t")
-                    break
+            if headers is None:
+                while True:
+                    headers = next(fin).strip()
+                    if not headers.startswith("#"):
+                        headers = headers.split("\t")
+                        break
             result = Tents(headers=headers)
             for line in fin:
                 elements = line.strip().split("\t")
@@ -101,6 +97,12 @@ class Tents:
 
     def __iter__(self):
         return iter(self._entries)
+
+    def __len__(self):
+        return len(self._entries)
+
+    def __getitem__(self, idx):
+        return self._entries[idx]
 
     def add(self, entry: Tent):
         repr(entry)
