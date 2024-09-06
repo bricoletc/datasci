@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "datasci"
+name = "datasci-bricoletc"
 description = 'Utilities for basic data science'
 readme = "README.md"
 requires-python = ">=3.7"
