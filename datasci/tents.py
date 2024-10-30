@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Set, Optional
 from pathlib import Path
 from itertools import starmap, repeat
 
@@ -14,7 +14,7 @@ class UnsupportedFieldsException(Exception):
 class Tent:
     _UNSET = "NA"
 
-    def __init__(self, h: list, r_h: list, immutable: bool, unset = None):
+    def __init__(self, h: list, r_h: list, immutable: bool, unset=None):
         self._header = h
         self._header_set = set(h)
         self._required_header = r_h
@@ -54,9 +54,7 @@ class Tent:
 
     def _check_fields_are_supported(self, field_names):
         if not self._header_set.issuperset(field_names):
-            raise UnsupportedFieldsException(
-                f"Supported fields: {self._header}"
-            )
+            raise UnsupportedFieldsException(f"Supported fields: {self._header}")
 
     def update(self, **fields):
         self._check_fields_are_supported(fields.keys())
@@ -87,8 +85,13 @@ class Tents:
                 result.add(new_tent)
         return result
 
-
-    def __init__(self, header: list, required_header: list = [], immutable: bool = False, unset_value = None):
+    def __init__(
+        self,
+        header: list,
+        required_header: list = [],
+        immutable: bool = False,
+        unset_value=None,
+    ):
         self._header = header
         self._required_header = required_header
         self._entries = list()
@@ -118,3 +121,12 @@ class Tents:
     def get_header(self):
         return "\t".join(self._header) + "\n"
 
+    def drop_elements(self, element_indices: Set[int]) -> None:
+        """
+        Drops the Tent entries whose indices are listed in `element_indices`
+        """
+        filtered_entries = list()
+        for entry_idx in range(len(self)):
+            if entry_idx not in element_indices:
+                filtered_entries.append(self[entry_idx])
+        self._entries = filtered_entries
