@@ -15,15 +15,15 @@ class Tent:
     _UNSET = "NA"
 
     def __init__(self, h: list, r_h: list, immutable: bool, unset = None):
-        self._headers = h
-        self._headers_set = set(h)
-        self._required_headers = r_h
-        self._required_headers_set = set(r_h)
-        self._set_headers = set()
+        self._header = h
+        self._header_set = set(h)
+        self._required_header = r_h
+        self._required_header_set = set(r_h)
+        self._set_header = set()
         self._immutable = immutable
         if unset is not None:
             self._UNSET = unset
-        for key in self._headers:
+        for key in self._header:
             setattr(self, key, self._UNSET)
 
     def __getitem__(self, key):
@@ -32,27 +32,30 @@ class Tent:
     def __setattr__(self, key, value):
         if not key.startswith("_"):
             self._check_fields_are_supported({key})
-            if key in self._set_headers and self._immutable:
+            if key in self._set_header and self._immutable:
                 raise ValueError(f"{key} is already set")
-            self._set_headers.add(key)
+            self._set_header.add(key)
         super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
 
+    def __eq__(self, other: "Tent"):
+        return all(map(lambda key: self[key] == other[key], self._header))
+
     def __repr__(self):
-        missing_fields = self._required_headers_set.difference(self._set_headers)
+        missing_fields = self._required_header_set.difference(self._set_header)
         if len(missing_fields) > 0:
             raise UnsetFieldsException(
-                f"Missing unset fields: {missing_fields}. Entry can only be serialised with all of the following fields set: {self._required_headers}"
+                f"Missing unset fields: {missing_fields}. Entry can only be serialised with all of the following fields set: {self._required_header}"
             )
-        values = starmap(getattr, zip(repeat(self), self._headers))
+        values = starmap(getattr, zip(repeat(self), self._header))
         return "\t".join(map(str, values))
 
     def _check_fields_are_supported(self, field_names):
-        if not self._headers_set.issuperset(field_names):
+        if not self._header_set.issuperset(field_names):
             raise UnsupportedFieldsException(
-                f"Supported fields: {self._headers}"
+                f"Supported fields: {self._header}"
             )
 
     def update(self, **fields):
@@ -68,26 +71,26 @@ class Tents:
     """
 
     @classmethod
-    def from_tsv(self, fname: str, headers: List[str] = None) -> "Tents":
+    def from_tsv(self, fname: str, header: List[str] = None) -> "Tents":
         with Path(fname).open("r") as fin:
-            if headers is None:
+            if header is None:
                 while True:
-                    headers = next(fin).strip()
-                    if not headers.startswith("#"):
-                        headers = headers.split("\t")
+                    header = next(fin).strip()
+                    if not header.startswith("#"):
+                        header = header.split("\t")
                         break
-            result = Tents(headers=headers)
+            result = Tents(header=header)
             for line in fin:
                 elements = line.strip().split("\t")
                 new_tent = result.new()
-                new_tent.update(**dict(zip(headers, elements)))
+                new_tent.update(**dict(zip(header, elements)))
                 result.add(new_tent)
         return result
 
 
-    def __init__(self, headers: list, required_headers: list = [], immutable: bool = False, unset_value = None):
-        self._headers = headers
-        self._required_headers = required_headers
+    def __init__(self, header: list, required_header: list = [], immutable: bool = False, unset_value = None):
+        self._header = header
+        self._required_header = required_header
         self._entries = list()
         self._immutable = immutable
         self._unset = unset_value
@@ -106,12 +109,12 @@ class Tents:
 
     def add(self, entry: Tent):
         repr(entry)
-        assert entry._headers == self._headers
+        assert entry._header == self._header
         self._entries.append(entry)
 
     def new(self) -> Tent:
-        return Tent(self._headers, self._required_headers, self._immutable, self._unset)
+        return Tent(self._header, self._required_header, self._immutable, self._unset)
 
     def get_header(self):
-        return "\t".join(self._headers) + "\n"
+        return "\t".join(self._header) + "\n"
 
