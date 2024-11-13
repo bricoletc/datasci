@@ -130,3 +130,7 @@ class Tents:
             if entry_idx not in element_indices:
                 filtered_entries.append(self[entry_idx])
         self._entries = filtered_entries
+
+    def extend(self, other: 'Tents'):
+        for element in other:
+            self.add(element)
