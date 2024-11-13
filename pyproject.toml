@@ -10,7 +10,7 @@ requires-python = ">=3.7"
 license = "MIT"
 keywords = []
 authors = [
-  { name = "Brice Letcher", email = "bletcher@ebi.ac.uk" },
+  { name = "Brice Letcher", email = "brice.letcher@ens-lyon.fr" },
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -27,9 +27,9 @@ dependencies = []
 dynamic = ["version"]
 
 [project.urls]
-Documentation = "https://github.com/unknown/datasci#readme"
-Issues = "https://github.com/unknown/datasci/issues"
-Source = "https://github.com/unknown/datasci"
+Documentation = "https://github.com/bricoletc/datasci#readme"
+Issues = "https://github.com/bricoletc/datasci/issues"
+Source = "https://github.com/bricoletc/datasci"
 
 [tool.hatch.version]
 path = "datasci/__about__.py"
