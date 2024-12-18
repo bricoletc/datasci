@@ -61,6 +61,10 @@ class Tent:
         for key, val in fields.items():
             self[key] = val
 
+    def copy_values(self, other: "Tent"):
+        for key in other._header:
+            setattr(self, key, getattr(other, key))
+
 
 class Tents:
     """
@@ -98,8 +102,11 @@ class Tents:
         self._immutable = immutable
         self._unset = unset_value
 
-    def __repr__(self, with_header: bool = True):
-        return self.get_header() + "\n".join(map(repr, self._entries))
+    def _entries_to_tsv(self) -> str:
+        return "\n".join(map(repr, self._entries))
+
+    def __repr__(self):
+        return self.get_header() + self._entries_to_tsv()
 
     def __iter__(self):
         return iter(self._entries)
@@ -109,6 +116,12 @@ class Tents:
 
     def __getitem__(self, idx):
         return self._entries[idx]
+
+    def to_tsv(self, with_header: bool = True):
+        result = ""
+        if with_header:
+            result += self.get_header()
+        return result + self._entries_to_tsv()
 
     def add(self, entry: Tent):
         repr(entry)
@@ -131,6 +144,6 @@ class Tents:
                 filtered_entries.append(self[entry_idx])
         self._entries = filtered_entries
 
-    def extend(self, other: 'Tents'):
+    def extend(self, other: "Tents"):
         for element in other:
             self.add(element)
