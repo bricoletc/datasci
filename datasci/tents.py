@@ -1,6 +1,7 @@
 from typing import List, Set, Optional
 from pathlib import Path
 from itertools import starmap, repeat
+import gzip
 
 
 class UnsetFieldsException(Exception):
@@ -66,6 +67,23 @@ class Tent:
             setattr(self, key, getattr(other, key))
 
 
+def _get_fstream(fname: str):
+    if fname.endswith(".gz"):
+        fstream = gzip.open(fname, "rt")
+    else:
+        fstream = open(fname, "r")
+    return fstream
+
+
+def _read_header(fstream):
+    while True:
+        header = next(fstream).strip()
+        if not header.startswith("#"):
+            header = header.split("\t")
+            break
+    return header
+
+
 class Tents:
     """
     [TODO] Description
@@ -74,20 +92,42 @@ class Tents:
 
     @classmethod
     def from_tsv(self, fname: str, header: List[str] = None) -> "Tents":
-        with Path(fname).open("r") as fin:
-            if header is None:
-                while True:
-                    header = next(fin).strip()
-                    if not header.startswith("#"):
-                        header = header.split("\t")
-                        break
-            result = Tents(header=header)
-            for line in fin:
-                elements = line.strip().split("\t")
-                new_tent = result.new()
-                new_tent.update(**dict(zip(header, elements)))
-                result.add(new_tent)
+        fin = _get_fstream(fname)
+        if header is None:
+            header = _read_header(fin)
+        result = Tents(header=header)
+        for line in fin:
+            elements = line.strip().split("\t")
+            new_tent = result.new()
+            new_tent.update(**dict(zip(header, elements)))
+            result.add(new_tent)
+        fin.close()
         return result
+
+    @classmethod
+    def from_tsv_streamed(
+        self, fname: str, chunksize: int, header: List[str] = None
+    ) -> "Tents":
+        """
+        `chunksize`: number of lines to read, batch by batch
+
+        Returns an iterator through the batches.
+        """
+        fin = _get_fstream(fname)
+        if header is None:
+            header = read_header(fin)
+        result = Tents(header=header)
+        for i, line in enumerate(fin):
+            if i != 0 and i % chunksize == 0:
+                yield result
+                result = Tents(header=header)
+            elements = line.strip().split("\t")
+            new_tent = result.new()
+            new_tent.update(**dict(zip(header, elements)))
+            result.add(new_tent)
+        fin.close()
+        if len(result) > 0:
+            yield result
 
     def __init__(
         self,
